@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <elf.h>
@@ -46,8 +47,10 @@ static void usage(void)
 
 int main(int argc, char **argv)
 {
-	Elf32_Ehdr ehdr;
-	Elf32_Phdr phdr;
+	unsigned char e_ident[EI_NIDENT];
+	unsigned int phnum;
+	size_t phoff;
+	bool is_64bit;
 	size_t offset;
 	size_t hashoffset;
 	void *segment;
@@ -73,36 +76,81 @@ int main(int argc, char **argv)
 	if (mdt < 0)
 		err(1, "failed to open %s", argv[2]);
 
-	read(mdt, &ehdr, sizeof(ehdr));
-	pread(mdt, &phdr, sizeof(phdr), ehdr.e_phoff);
-	hashoffset = phdr.p_filesz;
+	read(mdt, e_ident, sizeof(e_ident));
+	if (memcmp(e_ident, ELFMAG, SELFMAG))
+		errx(1, "not an ELF file %s", argv[2]);
 
-	for (i = 0; i < ehdr.e_phnum; i++) {
-		offset = ehdr.e_phoff + i * sizeof(phdr);
+	if (e_ident[EI_CLASS] == ELFCLASS32) {
+		Elf32_Ehdr ehdr;
+		Elf32_Phdr phdr;
 
-		pread(mdt, &phdr, sizeof(phdr), offset);
-		pwrite(mbn, &phdr, sizeof(phdr), offset);
+		is_64bit = false;
+		pread(mdt, &ehdr, sizeof(ehdr), 0);
+		phoff = ehdr.e_phoff;
+		phnum = ehdr.e_phnum;
 
-		if (!phdr.p_filesz)
+		pread(mdt, &phdr, sizeof(phdr), phoff);
+		hashoffset = phdr.p_filesz;
+	} else if (e_ident[EI_CLASS] == ELFCLASS64) {
+		Elf64_Ehdr ehdr;
+		Elf64_Phdr phdr;
+
+		is_64bit = true;
+		pread(mdt, &ehdr, sizeof(ehdr), 0);
+		phoff = ehdr.e_phoff;
+		phnum = ehdr.e_phnum;
+
+		pread(mdt, &phdr, sizeof(phdr), phoff);
+		hashoffset = phdr.p_filesz;
+	} else
+		errx(1, "Unsupported ELF class %d\n", e_ident[EI_CLASS]);
+
+	for (i = 0; i < phnum; i++) {
+		size_t p_filesz, p_offset, r_offset;
+		unsigned long p_flags;
+
+		if (is_64bit) {
+			Elf64_Phdr phdr;
+
+			offset = phoff + i * sizeof(phdr);
+
+			pread(mdt, &phdr, sizeof(phdr), offset);
+			pwrite(mbn, &phdr, sizeof(phdr), offset);
+			p_offset = phdr.p_offset;
+			p_filesz = phdr.p_filesz;
+			p_flags = phdr.p_flags;
+		} else {
+			Elf32_Phdr phdr;
+			size_t offset;
+
+			offset = phoff + i * sizeof(phdr);
+
+			pread(mdt, &phdr, sizeof(phdr), offset);
+			pwrite(mbn, &phdr, sizeof(phdr), offset);
+			p_offset = phdr.p_offset;
+			p_filesz = phdr.p_filesz;
+			p_flags = phdr.p_flags;
+		}
+
+		if (!p_filesz)
 			continue;
 
-		segment = malloc(phdr.p_filesz);
+		segment = malloc(p_filesz);
 
 		/*
 		 * Attempt to read the hash chunk (type 2) directly following
 		 * the ELF header in the mdt, rather than the one stored in b01
 		 */
-		if (((phdr.p_flags >> 24) & 7) == 2) {
-			n = pread(mdt, segment, phdr.p_filesz, hashoffset);
-			hashoffset += phdr.p_filesz;
+		if (((p_flags >> 24) & 7) == 2) {
+			r_offset = hashoffset;
+			hashoffset += p_filesz;
 		} else {
-			n = pread(mdt, segment, phdr.p_filesz, phdr.p_offset);
+			r_offset = p_offset;
 		}
 
+		n = pread(mdt, segment, p_filesz, r_offset);
 		if (n < 0) {
 			errx(1, "failed to load segment %d: %zd\n", i, n);
-		} else if (n > 0) {
-			pwrite(mbn, segment, phdr.p_filesz, phdr.p_offset);
 		} else if (n == 0) {
 			sprintf(ext, ".b%02d", i);
 
@@ -110,11 +158,11 @@ int main(int argc, char **argv)
 			if (bxx < 0)
 				warn("failed to open %s", argv[2]);
 
-			read(bxx, segment, phdr.p_filesz);
-			pwrite(mbn, segment, phdr.p_filesz, phdr.p_offset);
+			read(bxx, segment, p_filesz);
 
 			close(bxx);
 		}
+		pwrite(mbn, segment, p_filesz, p_offset);
 
 		free(segment);
 	}

@@ -1,13 +1,15 @@
-OUT := pil-squasher
+OUT := pil-squasher pil-splitter
 
 CFLAGS ?= -Wall -g -O2
 LDFLAGS ?=
 prefix ?= /usr/local
 
-SRCS := pil-squasher.c
+SRCS := pil-squasher.c pil-splitter.c
 OBJS := $(SRCS:.c=.o)
 
-$(OUT): $(OBJS)
+all: $(OUT)
+
+%: %.o
 	$(CC) $(LDFLAGS) -o $@ $^
 
 install: $(OUT)

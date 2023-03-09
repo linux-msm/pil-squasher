@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 	if (!ext)
 		errx(1, "%s is not a mdt file\n", argv[2]);
 
-	mbn = open(argv[1], O_WRONLY | O_CREAT, 0644);
+	mbn = open(argv[1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	if (mbn < 0)
 		err(1, "failed to open %s", argv[1]);
 

@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 	if (mbn < 0)
 		err(1, "failed to open %s", argv[1]);
 
-	mdt = open(argv[2], O_WRONLY | O_CREAT, 0644);
+	mdt = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	if (mdt < 0)
 		err(1, "failed to open %s", argv[2]);
 
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
 			warn("error reading segment %d: %s", i, strerror(errno));
 		else  if (n != p_filesz)
 			warnx("segment %d is truncated", i);
-		bxx = open(argv[2], O_WRONLY | O_CREAT, 0644);
+		bxx = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		if (bxx < 0)
 			warn("failed to open %s", argv[2]);
 

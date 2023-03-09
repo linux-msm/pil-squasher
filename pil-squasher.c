@@ -86,6 +86,7 @@ int main(int argc, char **argv)
 
 		is_64bit = false;
 		pread(mdt, &ehdr, sizeof(ehdr), 0);
+		pwrite(mbn, &ehdr, sizeof(ehdr), 0);
 		phoff = ehdr.e_phoff;
 		phnum = ehdr.e_phnum;
 
@@ -97,6 +98,7 @@ int main(int argc, char **argv)
 
 		is_64bit = true;
 		pread(mdt, &ehdr, sizeof(ehdr), 0);
+		pwrite(mbn, &ehdr, sizeof(ehdr), 0);
 		phoff = ehdr.e_phoff;
 		phnum = ehdr.e_phnum;
 

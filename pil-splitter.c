@@ -85,6 +85,7 @@ int main(int argc, char **argv)
 
 		is_64bit = false;
 		pread(mbn, &ehdr, sizeof(ehdr), 0);
+		pwrite(mdt, &ehdr, sizeof(ehdr), 0);
 		phoff = ehdr.e_phoff;
 		phnum = ehdr.e_phnum;
 	} else if (e_ident[EI_CLASS] == ELFCLASS64) {
@@ -92,6 +93,7 @@ int main(int argc, char **argv)
 
 		is_64bit = true;
 		pread(mbn, &ehdr, sizeof(ehdr), 0);
+		pwrite(mdt, &ehdr, sizeof(ehdr), 0);
 		phoff = ehdr.e_phoff;
 		phnum = ehdr.e_phnum;
 	} else
@@ -107,6 +109,7 @@ int main(int argc, char **argv)
 			offset = phoff + i * sizeof(phdr);
 
 			pread(mbn, &phdr, sizeof(phdr), offset);
+			pwrite(mdt, &phdr, sizeof(phdr), offset);
 			p_offset = phdr.p_offset;
 			p_filesz = phdr.p_filesz;
 			p_flags = phdr.p_flags;
@@ -117,6 +120,7 @@ int main(int argc, char **argv)
 			offset = phoff + i * sizeof(phdr);
 
 			pread(mbn, &phdr, sizeof(phdr), offset);
+			pwrite(mdt, &phdr, sizeof(phdr), offset);
 			p_offset = phdr.p_offset;
 			p_filesz = phdr.p_filesz;
 			p_flags = phdr.p_flags;

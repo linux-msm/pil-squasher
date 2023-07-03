@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 		errx(1, "Unsupported ELF class %d\n", e_ident[EI_CLASS]);
 
 	for (i = 0; i < phnum; i++) {
-		size_t p_filesz, p_offset, r_offset;
+		size_t p_filesz, p_offset;
 		unsigned long p_flags;
 
 		if (is_64bit) {
@@ -141,19 +141,17 @@ int main(int argc, char **argv)
 
 		/*
 		 * Attempt to read the hash chunk (type 2) directly following
-		 * the ELF header in the mdt, rather than the one stored in b01
+		 * the ELF header in the mdt, rather than the one stored in b%02d
 		 */
+		n = 0;
 		if (((p_flags >> 24) & 7) == 2) {
-			r_offset = hashoffset;
+			n = pread(mdt, segment, p_filesz, hashoffset);
 			hashoffset += p_filesz;
-		} else {
-			r_offset = p_offset;
+			if (n && n != p_filesz)
+				errx(1, "failed to load segment %d: %zd\n", i, n);
 		}
 
-		n = pread(mdt, segment, p_filesz, r_offset);
-		if (n < 0) {
-			errx(1, "failed to load segment %d: %zd\n", i, n);
-		} else if (n == 0) {
+		if (n == 0) {
 			sprintf(ext, ".b%02d", i);
 
 			bxx = open(argv[2], O_RDONLY);

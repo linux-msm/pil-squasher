@@ -13,7 +13,8 @@ all: $(OUT)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 install: $(OUT)
-	install -D -m 755 $< $(DESTDIR)$(prefix)/bin/$<
+	install -D -m 755 pil-squasher $(DESTDIR)$(prefix)/bin/pil-squasher
+	install -D -m 755 pil-splitter $(DESTDIR)$(prefix)/bin/pil-splitter
 
 clean:
 	rm -f $(OUT) $(OBJS)

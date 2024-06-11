@@ -16,7 +16,7 @@ static void usage(void)
 {
 	extern const char *__progname;
 
-	fprintf(stderr, "%s: <mbn output> <mdt header>\n", __progname);
+	fprintf(stderr, "%s: <mbn input> <mdt output>\n", __progname);
 	exit(1);
 }
 

@@ -10,7 +10,11 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <elf.h>
+#if defined(__APPLE__)
+        #include "include/elf.h"
+#else
+        #include <elf.h>
+#endif
 
 static void usage(void)
 {
